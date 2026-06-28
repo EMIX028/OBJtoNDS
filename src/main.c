@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "main.h"
 
 int main(int argc, char **argv) {
@@ -25,7 +26,7 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
   printf("le fichier %s a été crée\n", Hname);
-  const char *Cname = strcat(slice_by_char(filename,'.'), ".c");
+  const char *Cname = strcat(slice_by_char(filename, '.'), ".c");
   FILE *fcptr = fopen(Cname, "wb");
   if (fcptr == nullptr) {
     fclose(fobj);
@@ -35,10 +36,17 @@ int main(int argc, char **argv) {
   printf("le fichier %s a été crée\n", Cname);
   int id;
   char buffer[100];
+  bool firstOBJ = true;
   while ((id = fgetc(fobj)) != EOF) {
+    printf("%ld\n", ftell(fobj));
+    firstOBJ = (ftell(fobj) > 1);
     if (fgets(buffer, sizeof(buffer), fobj) != nullptr) {
       if (id == 'o') {
+        if(firstOBJ){
+          fprintf(fcptr, "}\n");  // sert à fermer les fonctions si c'est pas la première ligne
+        }
         fprintf(fhptr, "void draw%s();\n", slice_by_char(buffer, (char) 10));
+        fprintf(fcptr, "void draw%s(){\n", buffer);
       }
     } else {
       fprintf(stderr,
