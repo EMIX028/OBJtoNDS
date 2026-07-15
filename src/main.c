@@ -47,20 +47,15 @@ int main(int argc, char **argv) {
   char id[3];
   char buffer[100];
   bool firstO = true;
-  obj_t objet = {
-    objet.n = 0, objet.v_count = 0, objet.vn_count = 0, objet.vt_count = 0
-  };
   indexV_t Vlist;
   indexVinit(&Vlist);
   long int k = 0;
-
-  while (fgets(id,3,fobj) != nullptr) {
-    printf("id : %c%c\n",id[0],id[1]);
+  while (fgets(id, 3, fobj) != nullptr) {
+    printf("id : %c%c\n", id[0], id[1]);
     //lit le premier caractère pour verifier le type d'objet
     if (fgets(buffer, sizeof(buffer), fobj) != nullptr) {
       //on récupère la ligne entière pour la traiter
       if (id[0] == 'o') {
-        objet.n = ftell(fobj);
         // cas objet
         if (!firstO) {
           fprintf(fcptr, "}\n");  // sert à fermer les fonctions si c'est pas la
@@ -76,9 +71,17 @@ int main(int argc, char **argv) {
         fprintf(fcptr, startingF);
       }
       if (id[0] == 'v' && id[1] == ' ') {
-        add_vert(&Vlist,ftell(fobj));
-        objet.v_count += 1;
-        printf("vertices ligne %ld\n",k);
+        add_vert(&Vlist, ftell(fobj));
+        printf("vertices ligne %ld\n", k);
+      }
+      if (id[0] == 'f') {
+        if (strnombre_vert(buffer, strlen(buffer)) > 4) {
+          fprintf(stderr, "une face contient plus de 4 vertices %ld", k);
+        }
+        char out[14]; //environ taille d'un morceau v/vt/vn
+        strFacesCut(buffer, out, 1);
+        printf("%s taille : %u nb : %ld\n", out,
+            strnombre_vert(buffer, strlen(buffer)), get_v(out));
       }
     } else {
       fprintf(stderr,
@@ -87,7 +90,7 @@ int main(int argc, char **argv) {
     }
     ++k;
   }
-  if(!firstO){
+  if (!firstO) {
     fprintf(fcptr, "}\n");
   }
   /*
@@ -112,25 +115,67 @@ char *slice_by_char(char *filename, char c) {
   return filename;
 }
 
+void strFacesCut(char *buffer, char *out, size_t index) {
+  size_t current = 0;
+  size_t start = 0;
+  size_t end = 0;
+  while (buffer[start] != '\0') {
+    if (buffer[start] == ' ') {
+      start++;
+      continue;
+    }
+    if (current == index) {
+      end = start;
+      while (buffer[end] != ' ' && buffer[end] != '\0') {
+        end++;
+      }
+      strncpy(out, buffer + start, end - start);
+      out[end - start] = '\0';
+      return;
+    }
+    while (buffer[start] != ' ' && buffer[start] != '\0') {
+      start++;
+    }
+    current++;
+  }
+  out[0] = '\0';
+}
 
-void indexVinit(indexV_t *v){
+unsigned int strnombre_vert(char *s, size_t n) {
+  const char *p = (const char *) s + n;
+  unsigned int k = 0;
+  while (p >= s) {
+    if (*p == ' ') {
+      ++k;
+    }
+    --p;
+  }
+  return k + 1;
+}
+
+long int get_v(char *s) {
+  long int res;
+  sscanf(s, "%ld %*s", &res);
+  return res;
+}
+
+void indexVinit(indexV_t *v) {
   v->size = 4;
   v->n = 0;
   v->l = malloc(v->size * sizeof(long int));
 }
 
 void add_vert(indexV_t *v, long int val) {
-    if (v->n == v->size) {
-        v->size *= 2;
-        v->l = realloc(v->l, v->size * sizeof(long int));
-    }
-
-    v->l[v->n++] = val;
+  if (v->n == v->size) {
+    v->size *= 2;
+    v->l = realloc(v->l, v->size * sizeof(long int));
+  }
+  v->l[v->n++] = val;
 }
 
 void free_indexV(indexV_t *v) {
-    free(v->l);
-    v->l = nullptr;
-    v->n = 0;
-    v->size = 0;
+  free(v->l);
+  v->l = nullptr;
+  v->n = 0;
+  v->size = 0;
 }
