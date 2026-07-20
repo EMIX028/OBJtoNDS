@@ -19,13 +19,13 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
   //initialise le nom des fichier .h et .c résultant du fichier source
-  char base[256];
-  strcpy(base, filename);
-  slice_by_char(base, '.');
-  char Hname[260];
-  char Cname[260];
-  sprintf(Hname, "%s.h", base);
-  sprintf(Cname, "%s.c", base);
+  char nom[256];
+  sscanf(filename, "%255[^.].obj", nom);
+  printf("nom du fichier : %s\n", nom);
+  char Hname[258];
+  char Cname[258];
+  sprintf(Hname, "%s.h", nom);
+  sprintf(Cname, "%s.c", nom);
   FILE *fhptr = fopen(Hname, "wb");
   if (fhptr == nullptr) {
     fclose(fobj);
@@ -40,79 +40,67 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Erreur lors de la création de %s\n", Cname);
   }
   printf("le fichier %s a été crée\n", Cname);
+  fprintf(fcptr, "#include <nds.h>\n");
   fprintf(fcptr, "#include \"%s\"\n\n", Hname);
-  char startingF[]
-    =
-      "  if(cullback){\n    glPolyFmt(POLY_ALPHA(alpha) | POLY_CULL_BACK);\n  }\n  else{\n    glPolyFmt(POLY_ALPHA(alpha) | POLY_CULL_NONE);\n  }\n";
-  char id[3];
-  char buffer[100];
-  bool firstO = true;
+  size_t ligne = 0;
+  //long pos;
   indexV_t Vlist;
   indexVinit(&Vlist);
-  long int k = 0;
-  while (fgets(id, 3, fobj) != nullptr) {
-    printf("id : %c%c\n", id[0], id[1]);
-    //lit le premier caractère pour verifier le type d'objet
-    if (fgets(buffer, sizeof(buffer), fobj) != nullptr) {
-      //on récupère la ligne entière pour la traiter
-      if (id[0] == 'o') {
-        // cas objet
-        if (!firstO) {
-          fprintf(fcptr, "}\n");  // sert à fermer les fonctions si c'est pas la
-                                  // première ligne
-        }
-        firstO = false;
-        fprintf(fhptr,
-            "void draw%s(bool cullback, unsigned int alpha, float x, float y, float z);\n",
-            slice_by_char(buffer, (char) 10)); // 10 = caractère \n
-        fprintf(fcptr,
-            "void draw%s(bool cullback, unsigned int alpha, float x, float y, float z){\n",
-            buffer);
-        fprintf(fcptr, startingF);
-      }
-      if (id[0] == 'v' && id[1] == ' ') {
-        add_vert(&Vlist, ftell(fobj));
-        printf("vertices ligne %ld\n", k);
-      }
-      if (id[0] == 'f') {
-        if (strnombre_vert(buffer, strlen(buffer)) > 4) {
-          fprintf(stderr, "une face contient plus de 4 vertices %ld", k);
-        }
-        char out[14]; //environ taille d'un morceau v/vt/vn
-        strFacesCut(buffer, out, 1);
-        printf("%s taille : %u nb : %ld\n", out,
-            strnombre_vert(buffer, strlen(buffer)), get_v(out));
-      }
-    } else {
-      fprintf(stderr,
-          "la fin du fichier est atteinte ou un problème est survenue\n");
+  char buffer[128];
+  //char type;
+  char suite[126];
+  while (1) {
+    //pos = ftell(fobj);
+    if (fgets(buffer, sizeof(buffer), fobj) == nullptr) {
       break;
     }
-    ++k;
+    sscanf(buffer, "%*c %126[^\n]", suite);
+    if (strncmp(buffer, "o ", 2) == 0) {
+      if (ftell(fhptr) != 0) {
+        fprintf(fcptr, "}\n\n");
+      }
+      fprintf(fhptr,
+          "void draw%s(bool cullback);\n\n",
+          suite);
+      fprintf(fcptr,
+          "void draw%s(bool cullback){\n",
+          suite);
+      fprintf(fcptr,
+          "\tglPolyFmt(POLY_ALPHA(31) |(cullback ? POLY_CULL_BACK : POLY_CULL_NONE));\n");
+      fprintf(fcptr, "\tglColor3b(255,255,255);\n");
+    } else if (strncmp(buffer, "v ", 2) == 0) {     //Vertices
+      vert_t vertices = { vertices.x = 0, vertices.y = 0, vertices.z = 0 };
+      sscanf(suite, "%f %f %f", &vertices.x, &vertices.y, &vertices.z);
+      add_vert(&Vlist, vertices);
+      printf("le vertice (%f, %f, %f) ligne %ld à été ajouté\n", vertices.x,
+          vertices.y, vertices.z, ligne + 1);
+    } else if (strncmp(buffer, "f ", 2) == 0) {     //faces
+      unsigned int nbVert = strnombre_vert(suite, strlen(suite));
+      printf("%s nombre vertices : %u\n", suite, nbVert);
+      char out[14]; //environ taille d'un morceau v/vt/vn
+      if (nbVert == 4) {
+        fprintf(fcptr, "\tglBegin(GL_QUADS);\n");
+        printf("début face\n");
+        for (int k = 0; k < (int) nbVert; ++k) {
+          strFacesCut(suite, out, (size_t) k);
+          fprintf(fcptr,
+              "\tglVertex3v16(floattov16(%f), floattov16(%f), floattov16(%f));\n",
+              Vlist.l[get_v(out) - 1].x,
+              Vlist.l[get_v(out) - 1].y, Vlist.l[get_v(out) - 1].z);
+        }
+        fprintf(fcptr, "\tglEnd();\n");
+      } else {
+        fprintf(stderr,
+            "le nombre de vertices présent dans cette face ne respecte la norme nds\n");
+      }
+    }
+    ++ligne;
   }
-  if (!firstO) {
-    fprintf(fcptr, "}\n");
-  }
-  /*
-   * cas des différents type d'erreur de fichier à traiter
-   */
+  fprintf(fcptr, "}");
   fclose(fobj);
   fclose(fhptr);
   fclose(fcptr);
   return EXIT_SUCCESS;
-}
-
-char *slice_by_char(char *filename, char c) {
-  /*
-   * recherche décroissante du caractère C dans la chaine filename
-   * pour séparer la chaine de caractère en deux.
-   */
-  char *p = filename + strlen(filename);
-  while (p > filename && *p != c) {
-    --p;
-  }
-  *p = '\0';
-  return filename;
 }
 
 void strFacesCut(char *buffer, char *out, size_t index) {
@@ -153,22 +141,22 @@ unsigned int strnombre_vert(char *s, size_t n) {
   return k + 1;
 }
 
-long int get_v(char *s) {
-  long int res;
-  sscanf(s, "%ld %*s", &res);
+int get_v(char *s) {
+  int res;
+  sscanf(s, "%d", &res);
   return res;
 }
 
 void indexVinit(indexV_t *v) {
   v->size = 4;
   v->n = 0;
-  v->l = malloc(v->size * sizeof(long int));
+  v->l = malloc(v->size * sizeof(vert_t));
 }
 
-void add_vert(indexV_t *v, long int val) {
+void add_vert(indexV_t *v, vert_t val) {
   if (v->n == v->size) {
     v->size *= 2;
-    v->l = realloc(v->l, v->size * sizeof(long int));
+    v->l = realloc(v->l, v->size * sizeof(vert_t));
   }
   v->l[v->n++] = val;
 }
