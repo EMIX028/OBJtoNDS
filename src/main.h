@@ -8,6 +8,7 @@ void strFacesCut(char *buffer, char *out, size_t index);
  * récupère la position du vertices de la face dans le fichier source
  */
 int get_v(char *s);
+int get_vn(char *s);
 
 /*renvoie le nombre de vertices que contient une face
  */

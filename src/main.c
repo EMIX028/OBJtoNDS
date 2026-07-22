@@ -46,6 +46,8 @@ int main(int argc, char **argv) {
   //long pos;
   indexV_t Vlist;
   indexVinit(&Vlist);
+  indexV_t VNlist;
+  indexVinit(&VNlist);
   char buffer[128];
   //char type;
   char suite[126];
@@ -54,7 +56,7 @@ int main(int argc, char **argv) {
     if (fgets(buffer, sizeof(buffer), fobj) == nullptr) {
       break;
     }
-    sscanf(buffer, "%*c %126[^\n]", suite);
+    sscanf(buffer, "%*c%*c %126[^\n]", suite);
     if (strncmp(buffer, "o ", 2) == 0) {
       if (ftell(fhptr) != 0) {
         fprintf(fcptr, "}\n\n");
@@ -66,7 +68,7 @@ int main(int argc, char **argv) {
           "void draw%s(bool cullback){\n",
           suite);
       fprintf(fcptr,
-          "\tglPolyFmt(POLY_ALPHA(31) |(cullback ? POLY_CULL_BACK : POLY_CULL_NONE));\n");
+          "\tglPolyFmt(POLY_ALPHA(31) |(cullback ? POLY_CULL_BACK : POLY_CULL_NONE)| POLY_FORMAT_LIGHT0);\n");
       fprintf(fcptr, "\tglColor3b(255,255,255);\n");
     } else if (strncmp(buffer, "v ", 2) == 0) {     //Vertices
       vert_t vertices = { vertices.x = 0, vertices.y = 0, vertices.z = 0 };
@@ -74,17 +76,41 @@ int main(int argc, char **argv) {
       add_vert(&Vlist, vertices);
       printf("le vertice (%f, %f, %f) ligne %ld à été ajouté\n", vertices.x,
           vertices.y, vertices.z, ligne + 1);
+    } else if (strncmp(buffer, "vn", 2) == 0) {     //Normals
+      printf("%s\n",suite);
+      vert_t normal = { normal.x = 0, normal.y = 0, normal.z = 0 };
+      sscanf(suite, " %f %f %f", &normal.x, &normal.y, &normal.z);
+      add_vert(&VNlist, normal);
+      printf("la normal (%f, %f, %f) ligne %ld à été ajouté\n", normal.x,
+          normal.y, normal.z, ligne + 1);
     } else if (strncmp(buffer, "f ", 2) == 0) {     //faces
       unsigned int nbVert = strnombre_vert(suite, strlen(suite));
       printf("%s nombre vertices : %u\n", suite, nbVert);
       char out[14]; //environ taille d'un morceau v/vt/vn
       if (nbVert == 4) {
         fprintf(fcptr, "\tglBegin(GL_QUADS);\n");
-        printf("début face\n");
         for (int k = 0; k < (int) nbVert; ++k) {
           strFacesCut(suite, out, (size_t) k);
           fprintf(fcptr,
-              "\tglVertex3v16(floattov16(%f), floattov16(%f), floattov16(%f));\n",
+              "\tglNormal(NORMAL_PACK(floattov10(%f),floattov10(%f),floattov10(%f)));\n",
+              VNlist.l[get_vn(out) - 1].x, VNlist.l[get_vn(out) - 1].y,
+              VNlist.l[get_vn(out) - 1].z);
+          fprintf(fcptr,
+              "\tglVertex3v16(floattov16(%f), floattov16(%f), floattov16(%f));\n\n",
+              Vlist.l[get_v(out) - 1].x,
+              Vlist.l[get_v(out) - 1].y, Vlist.l[get_v(out) - 1].z);
+        }
+        fprintf(fcptr, "\tglEnd();\n");
+      }else if(nbVert == 3){
+        fprintf(fcptr, "\tglBegin(GL_TRIANGLES);\n");
+        for (int k = 0; k < (int) nbVert; ++k) {
+          strFacesCut(suite, out, (size_t) k);
+          fprintf(fcptr,
+              "\tglNormal(NORMAL_PACK(floattov10(%f),floattov10(%f),floattov10(%f)));\n",
+              VNlist.l[get_vn(out) - 1].x, VNlist.l[get_vn(out) - 1].y,
+              VNlist.l[get_vn(out) - 1].z);
+          fprintf(fcptr,
+              "\tglVertex3v16(floattov16(%f), floattov16(%f), floattov16(%f));\n\n",
               Vlist.l[get_v(out) - 1].x,
               Vlist.l[get_v(out) - 1].y, Vlist.l[get_v(out) - 1].z);
         }
@@ -144,6 +170,12 @@ unsigned int strnombre_vert(char *s, size_t n) {
 int get_v(char *s) {
   int res;
   sscanf(s, "%d", &res);
+  return res;
+}
+
+int get_vn(char *s) {
+  int res;
+  sscanf(s, "%*d%*c%*d%*c%d", &res);
   return res;
 }
 
