@@ -49,7 +49,6 @@ int main(int argc, char **argv) {
   indexV_t VNlist;
   indexVinit(&VNlist);
   char buffer[128];
-  //char type;
   char suite[127];
   while (1) {
     //pos = ftell(fobj);
