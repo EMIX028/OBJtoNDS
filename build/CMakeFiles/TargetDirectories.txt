@@ -1,3 +1,0 @@
-/home/maxime/Documents/GitGub_Local_repo/OBJtoNDS/build/CMakeFiles/OBJtoNDS.dir
-/home/maxime/Documents/GitGub_Local_repo/OBJtoNDS/build/CMakeFiles/edit_cache.dir
-/home/maxime/Documents/GitGub_Local_repo/OBJtoNDS/build/CMakeFiles/rebuild_cache.dir

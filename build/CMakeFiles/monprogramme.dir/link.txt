@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/monprogramme.dir/link.d CMakeFiles/monprogramme.dir/src/main.c.o -o monprogramme
