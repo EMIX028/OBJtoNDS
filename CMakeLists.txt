@@ -14,12 +14,15 @@ target_include_directories(OBJtoNDS PRIVATE
     include
 )
 
-target_compile_options(OBJtoNDS PRIVATE
-    -Wall
-    -Wextra
-    -Wconversion
-    -Werror
-    -Wpedantic
-    -Wwrite-strings
-    -O2
-)
+if (MSVC)
+    target_compile_options(OBJtoNDS PRIVATE
+        /W4
+    )
+else()
+    target_compile_options(OBJtoNDS PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+    )
+endif()
