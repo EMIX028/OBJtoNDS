@@ -1,4 +1,5 @@
 #include <stddef.h>
+#define nullptr NULL
 /*permet de couper la chaine de caractère contenant les données d'une face en
  * plusieurs morceaux pour chaque vertices de cette face
  *
