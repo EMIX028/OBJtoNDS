@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   indexVinit(&VNlist);
   char buffer[128];
   //char type;
-  char suite[126];
+  char suite[127];
   while (1) {
     //pos = ftell(fobj);
     if (fgets(buffer, sizeof(buffer), fobj) == nullptr) {
