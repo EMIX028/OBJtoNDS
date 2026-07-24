@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "main.h"
+#include "../include/main.h"
 
 int main(int argc, char **argv) {
   if (argc != 2) {
