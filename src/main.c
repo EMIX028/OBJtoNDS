@@ -43,7 +43,6 @@ int main(int argc, char **argv) {
   fprintf(fcptr, "#include <nds.h>\n");
   fprintf(fcptr, "#include \"%s\"\n\n", Hname);
   size_t ligne = 0;
-  //long pos;
   indexV_t Vlist;
   indexVinit(&Vlist);
   indexV_t VNlist;
@@ -51,7 +50,6 @@ int main(int argc, char **argv) {
   char buffer[128];
   char suite[127];
   while (1) {
-    //pos = ftell(fobj);
     if (fgets(buffer, sizeof(buffer), fobj) == nullptr) {
       break;
     }
