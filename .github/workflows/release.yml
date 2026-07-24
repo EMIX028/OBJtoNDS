@@ -65,7 +65,7 @@ jobs:
           cp build/Release/OBJtoNDS.exe release/OBJtoNDS-${{ steps.version.outputs.version }}-${{ matrix.name }}.exe
 
       - name: Upload executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: OBJtoNDS-${{ matrix.name }}
           path: release/*
