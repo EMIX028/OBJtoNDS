@@ -1,4 +1,4 @@
-name: Release
+name: Build release executables
 
 on:
   push:
@@ -12,7 +12,6 @@ jobs:
 
     strategy:
       fail-fast: false
-
       matrix:
         include:
           - os: ubuntu-latest
@@ -37,8 +36,7 @@ jobs:
       - name: Get version
         id: version
         shell: bash
-        run: |
-          echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+        run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Configure CMake
         run: >
@@ -52,45 +50,22 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
-      - name: Prepare release file (Linux/macOS)
+      - name: Prepare executable (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
         run: |
           mkdir release
-          cp build/OBJtoNDS \
-          release/OBJtoNDS-${{ steps.version.outputs.version }}-${{ matrix.name }}
+          cp build/OBJtoNDS release/OBJtoNDS-${{ steps.version.outputs.version }}-${{ matrix.name }}
 
-      - name: Prepare release file (Windows)
+      - name: Prepare executable (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
           mkdir release
-          cp build/Release/OBJtoNDS.exe \
-          release/OBJtoNDS-${{ steps.version.outputs.version }}-${{ matrix.name }}.exe
+          cp build/Release/OBJtoNDS.exe release/OBJtoNDS-${{ steps.version.outputs.version }}-${{ matrix.name }}.exe
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v5
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
         with:
           name: OBJtoNDS-${{ matrix.name }}
-          path: release/
-
-
-  release:
-    name: Create GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: release
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release/**/*
+          path: release/*
